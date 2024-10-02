@@ -1,0 +1,62 @@
+# Node modules
+v1/node_modules/
+server/node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+package-lock.json
+yarn.lock
+
+# Next.js build output
+v1/.next/
+v1/out/
+
+# Environment variables
+.v1/.env
+v1/.env.local
+v1/.env.development
+v1/.env.test
+v1/.env.production
+server/.env
+server/.env.local
+server/.env.development
+server/.env.test
+server/.env.production
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Log files
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+*.swp
+*.swo
+
+# Temporary files
+temp/
+tmp/
+
+# Test output
+coverage/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm/
+
+# Build directories
+v1/dist/
+v1/build/
+server/dist/
+server/build/
