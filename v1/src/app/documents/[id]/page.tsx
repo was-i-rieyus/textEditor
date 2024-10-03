@@ -11,8 +11,11 @@ export default function DocumentPage() {
   const params = useParams(); // Get route parameters
   const { id } = params;
 
+
+
+
   if (!id) {
-    return <div>Loading...</div>; // Wait for the id to be available
+    return <div>Loading.......</div>; // Wait for the id to be available
   }
 
   return <TextEditor />;
