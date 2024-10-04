@@ -18,5 +18,5 @@ export default function DocumentPage() {
     return <div>Loading.......</div>; // Wait for the id to be available
   }
 
-  return <TextEditor />;
+  return <TextEditor/>;
 }

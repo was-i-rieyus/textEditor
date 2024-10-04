@@ -23,7 +23,7 @@ export default function Home() {
       try {
         const response = await fetch(`${server2}/documents`);
         const data = await response.json();
-        console.log(data);
+        // console.log(data);
         setRecentDocs(data);
       } catch (error) {
         console.log(error);
@@ -41,8 +41,8 @@ export default function Home() {
         <p className="scroll-m-20 text-l font-normal tracking-tight pl-[15.3%] pt-5">
           Create a new document
         </p>
-        <div className="templates w-full flex items-center p-[25px] pl-[15%] pt-3  bg-[#F1F3F4 ] gap-5 flex-wrap">
-          <NewDoc />
+        <div className="templates w-full flex items-center p-[25px] pl-[15%] pt-3  bg-[#F1F3F4 ] gap-11 flex-wrap">
+          <NewDoc documentType="Blank Document"/>
         </div>
       </div>
       <div className="w-full bg-white">
