@@ -5,12 +5,13 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 
-mongoose.connect("mongodb://localhost:27017/google-docs-clone", {
+mongoose.connect("mongodb+srv://ajaykumar30802004:AXqnzB0iH4M77NMM@cluster0.zhkna.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useFindAndModify: false,
   useCreateIndex: true,
 });
+
 
 const io = require("socket.io")(3001, {
   cors: {

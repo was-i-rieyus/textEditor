@@ -12,26 +12,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, LoaderPinwheel } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// const documentId = uuidV4();
-// Redirect to /documents/[id]
-// redirect(`/documents`);
+type Props = {
+  documentType?: string; // Make this prop optional
+};
 
-type Props = {};
-export const NewDoc = ({}: Props) => {
+export const NewDoc = ({ documentType }: Props) => {
   const [docName, setDocName] = useState("");
   const [docId, setDocId] = useState("");
   const [docDesc, setDocDesc] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const server = process.env.SERVER;
+
   async function createDocumentHandler() {
-    //VALIDATE INPUT
+    // VALIDATE INPUT
+    setIsLoading(true);
     try {
       if (!docName || !docId || !docDesc) {
         toast.error("Please fill all fields");
+        setIsLoading(false);
         return;
       }
       const data = {
@@ -40,7 +42,7 @@ export const NewDoc = ({}: Props) => {
         docDesc,
       };
 
-      //TRY CREATING DOCUMENT
+      // TRY CREATING DOCUMENT
       const response = await fetch(`http://localhost:3002/documents`, {
         method: "POST",
         headers: {
@@ -52,30 +54,33 @@ export const NewDoc = ({}: Props) => {
       const result = await response.json();
       if (!response.ok) {
         toast.error(result.error);
+        setIsLoading(false);
         return;
       }
 
-      //SUCCESFULLY CREATED DOCUMENT // REDIRECT
+      // SUCCESSFULLY CREATED DOCUMENT // REDIRECT
       if (response.status === 201) {
         toast.success("Document created successfully");
         router.push(`/documents/${docId}`);
         return;
       }
     } catch (err) {
-      toast.error("An error occured");
+      toast.error("An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   }
 
   return (
-    <div className="flex flex-col  gap-2 items-center  ">
+    <div className="flex flex-col gap-2 items-center">
       {/* HANDLE CLICK DOCUMENT CREATE */}
       <Dialog>
         <DialogTrigger asChild>
           <div
             className="bg-white w-[170px] h-[210px] text-black
-         flex items-center justify-center
-         shadow-[0px_2px_8px_0px_rgba(99,99,99,0.2)]
-         hover:scale-[1.025] transition"
+             flex items-center justify-center
+             shadow-[0px_2px_8px_0px_rgba(99,99,99,0.2)]
+             hover:scale-[1.025] transition"
           >
             <Plus color="grey" size={25} />
           </div>
@@ -86,7 +91,7 @@ export const NewDoc = ({}: Props) => {
             <DialogDescription>Enter document details below</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {/* //DOCUMENT NAME */}
+            {/* DOCUMENT NAME */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="docName" className="text-right">
                 Name
@@ -114,7 +119,7 @@ export const NewDoc = ({}: Props) => {
                 Doc Id
               </Label>
               <Input
-                id="docName"
+                id="docId"
                 placeholder="Untitled"
                 className="col-span-3"
                 value={docId}
@@ -142,28 +147,20 @@ export const NewDoc = ({}: Props) => {
                 onChange={(e) => setDocDesc(e.target.value)}
               />
             </div>
-
-            {/* USE TO ADD EXTRA INPUT FIELDS */}
-            {/* <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="docDesc" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="docDesc"
-                placeholder="Enter document description"
-                className="col-span-3"
-                value={docDesc}
-                onChange={(e) => setDocDesc(e.target.value)}
-              />
-            </div> */}
           </div>
           <DialogFooter>
-            <Button onClick={createDocumentHandler}>Create</Button>
+            <Button onClick={createDocumentHandler}>
+              {isLoading ? "Creating your space..." : "Create"}
+              {isLoading ? <LoaderPinwheel className="animate-spin mr-2" size={16} /> : null}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <p className="text-sm font-medium ">Blank Document</p>
+      {/* Display document type below the dialog */}
+      {documentType && (
+        <p className="text-sm font-medium">{documentType}</p>
+      )}
     </div>
   );
 };
