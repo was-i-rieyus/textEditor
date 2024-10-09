@@ -1,18 +1,28 @@
+// Import required packages
+const cors = require("cors");
+const express = require("express");
 const mongoose = require("mongoose");
+const HTMLtoDOCX = require("html-to-docx");
+
+// Import utility functions
+const { findOrCreateDocument, findDocumentMeta } = require("./util");
+
+// Import MongoDB models
 const Document = require("./models/Document");
 const DocumentMeta = require("./models/DocumentMeta");
-const express = require("express");
-const cors = require("cors");
+
+// Initialize Express app
 const app = express();
 
-mongoose.connect("mongodb+srv://ajaykumar30802004:AXqnzB0iH4M77NMM@cluster0.zhkna.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
+// Connect to MongoDB
+mongoose.connect("mongodb://localhost:27017/google-docs-clone", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   useFindAndModify: false,
   useCreateIndex: true,
 });
 
-
+// Set up Socket.IO for real-time collaboration
 const io = require("socket.io")(3001, {
   cors: {
     origin: "http://localhost:3000",
@@ -20,63 +30,65 @@ const io = require("socket.io")(3001, {
   },
 });
 
+// Middleware
 app.use(cors()); // Enable CORS for all routes
-app.use(express.json()); // Enable JSON parsing for all routes
-const defaultValue = "";
+app.use(express.json()); // Enable JSON parsing for incoming requests
 
-// Set up Socket.IO
-io.on("connection", (socket) => {
-  socket.on("get-document", async (documentId) => {
-    const document = await findOrCreateDocument(documentId);
-    socket.join(documentId);
-    socket.emit("load-document", document.data);
+const defaultValue = ""; // Default content for new documents
 
-    socket.on("send-changes", (delta) => {
-      socket.broadcast.to(documentId).emit("receive-changes", delta);
-    });
+// Socket.IO connection and event handling
 
-    socket.on("save-document", async (data) => {
-      await Document.findByIdAndUpdate(documentId, { data });
+  io.on("connection", (socket) => {
+    socket.on("get-document", async (documentId) => {
+      const document = await findOrCreateDocument(documentId);
+      socket.join(documentId); // Join the room for this document
+      socket.emit("load-document", document.data); // Load the document for the user
+
+      // Handle real-time changes
+      socket.on("send-changes", (delta) => {
+        socket.broadcast.to(documentId).emit("receive-changes", delta); // Broadcast changes to other users
+      });
+
+      // Save document changes
+      socket.on("save-document", async (data) => {
+        await Document.findByIdAndUpdate(documentId, { data }); // Update the document in the database
+      });
     });
   });
-});
 
-// Document API route
+// API route to fetch document metadata
 app.post("/document-meta", async (req, res) => {
-  const {documentId}  = req.body;
-  console.log(documentId);
+  const { documentId } = req.body;
   try {
     const documents = await DocumentMeta.findById(documentId);
-    console.log(documents);
     res.json(documents);
   } catch (error) {
     res.status(500).json({ error: "Error fetching documents" });
   }
 });
 
-
+// API route to fetch all documents
 app.get("/documents", async (req, res) => {
   try {
     const documents = await DocumentMeta.find();
-    console.log(documents);
     res.json(documents);
   } catch (error) {
     res.status(500).json({ error: "Error fetching documents" });
   }
 });
 
-//check and insert new document
-
+// API route to create a new document
 app.post("/documents", async (req, res) => {
   const { docName, docId, docDesc } = req.body;
-  console.log(docName, docId, docDesc);
 
   try {
+    // Check if document ID already exists
     if (await findDocumentMeta(docId)) {
-      res.status(409).json({error:"Document Id already exists"});
+      res.status(409).json({ error: "Document Id already exists" });
       return;
     }
 
+    // Create new document and its metadata
     const document = await Document.create({ _id: docId, data: defaultValue });
     const documentMeta = await DocumentMeta.create({
       _id: docId,
@@ -88,29 +100,44 @@ app.post("/documents", async (req, res) => {
     return;
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: "Something went wrong! try again later." });
+    res.status(500).json({ error: "Something went wrong! Try again later." });
   }
 });
 
+// API route to generate DOCX from HTML content
+app.post("/generate-docx", async (req, res) => {
+  const { htmlContent, documentName } = req.body;
 
+  // Validate HTML content
+  if (!htmlContent) {
+    return res.status(400).json({ error: "No HTML content provided." });
+  }
 
-//HELPER FUNCTION TO CHECK IF A DOC-ID IS ALREADY PRESENT
-async function findDocumentMeta(id) {
-  if (id == null) return;
-  const document = await DocumentMeta.findById(id);
-  console.log(document);
-  if (document!=null) return true;
-  else return false;
-}
+  try {
+    // Convert HTML to DOCX
+    const fileBuffer = await HTMLtoDOCX(htmlContent, null, {
+      table: { row: { cantSplit: true } },
+      footer: true,
+      pageNumber: true,
+    });
 
-// Helper function to find or create a document [UNUSED]
-async function findOrCreateDocument(id) {
-  if (id == null) return;
+    // Set response headers for file download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${documentName || "document"}.docx"`
+    );
 
-  const document = await Document.findById(id);
-  if (document) return document;
-  return await Document.create({ _id: id, data: defaultValue });
-}
+    // Send the generated DOCX buffer
+    res.send(fileBuffer);
+  } catch (error) {
+    console.error("Error generating DOCX:", error);
+    res.status(500).json({ error: "Failed to generate Word document." });
+  }
+});
 
 // Start the server
 const PORT = 3002;

@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import Quill from "quill";
+import { toast } from "sonner";
 import "quill/dist/quill.snow.css";
+import { Delta } from "quill/core";
 import { io, Socket } from "socket.io-client";
 import { redirect, useParams } from "next/navigation"; // Use useParams for route parameters
-import Quill from "quill";
-import { Delta } from "quill/core";
+import { useCallback, useEffect, useState } from "react";
+import { captureFirstPageAsImage } from "@/utilities/utilities";
 import { Navbar } from "./Navbar";
-import {toast} from "sonner";
+
+
+
+
+
 const SAVE_INTERVAL_MS = 2000;
 const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -22,16 +28,23 @@ const TOOLBAR_OPTIONS = [
 export default function TextEditor() {
   const { id: documentId } = useParams(); // Get the documentId from the route parameters
   const [docName, setDocName] = useState("");
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [quill, setQuill] = useState<Quill | null>(null);
+
   const server = process.env.NEXT_PUBLIC_SERVER_2;
 
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [quill, setQuill] = useState<Quill | null>(null);
+
+
+  //document Meta
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = { documentId };
-        console.log(data);
-        const res = await fetch(`${server}/document-meta`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+        const res = await fetch(`${server}/document-meta`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
         const result = await res.json();
         if (!res.ok) {
           toast.error(result.error);
@@ -39,8 +52,6 @@ export default function TextEditor() {
           return;
         }
         setDocName(result.document_name);
-        console.log(result);
-        console.log(docName);
       } catch (err) {
         console.log(err);
       }
@@ -49,6 +60,8 @@ export default function TextEditor() {
   }, []);
 
   // Ensure that Quill and Socket.IO only run on the client side
+
+  //init socket connection
   useEffect(() => {
     const s: Socket = io("http://localhost:3001");
     setSocket(s);
@@ -123,10 +136,129 @@ export default function TextEditor() {
     setQuill(q);
   }, []);
 
+ 
+  async function exportAsPDF() {
+    if (!quill) return;
+    const htmlContent = quill.root.innerHTML;
+
+    const promise = () =>
+      new Promise(async (resolve, reject) => {
+        try {
+          const response = await fetch("/api/generate-pdf", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ htmlContent, docName }),
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${docName || "document"}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            // Resolve promise with success message
+            resolve({
+              success: true,
+            });
+          } else {
+            // Reject promise with error message
+            reject(
+              new Error(`Failed to export pdf. Try again later`)
+            );
+          }
+        } catch (err) {
+          reject("Failed to export document.Try again later!");
+        }
+      });
+
+    toast.promise(promise, {
+      loading: "Prepraing document to export...",
+      success: (data) => {
+        return "Document ready to export!";
+      },
+      error: (error) => {
+        return error.message; // Use error message from reject
+      },
+    });
+  }
+
+  async function exportAsDocx() {
+    if (!quill) return;
+    const htmlContent = quill.root.innerHTML;
+
+    const promise = () =>
+      new Promise(async (resolve, reject) => {
+        try {
+          const response = await fetch("/api/generate-docx", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ htmlContent, docName }),
+          });
+
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${docName}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            // Resolve promise with success message
+            resolve({
+              success: true,
+            });
+          } else {
+            // Reject promise with error message
+            reject(
+              new Error(`Failed to generate DOCX: ${response.statusText}`)
+            );
+          }
+        } catch (err) {
+          reject("Failed to export document.Try again later!");
+        }
+      });
+
+    toast.promise(promise, {
+      loading: "Prepraing document to export...",
+      success: (data) => {
+        return "Document ready to export!";
+      },
+      error: (error) => {
+        return error.message; // Use error message from reject
+      },
+    });
+  }
+
+
+  //quill,document
+
+
+  async function createThumbnail(){
+    if (!quill) return;
+    captureFirstPageAsImage(quill, docName);
+  }
+  
+
   return (
     <div className="w-full">
       <Navbar docname={docName} />
-      <div className="w-full" ref={wrapperRef}></div>;
+      <div className="w-full" ref={wrapperRef}></div>
+      <button onClick={exportAsPDF}>Export as PDF</button>
+      <button onClick={exportAsDocx}>Export as DOC</button>
+      <br />
+      <button onClick={createThumbnail}>Capture First Page as Image</button>
+
+
+        {/* FOR DOC PREVIEW // DONT MIND */}
+        <div id="preview" className="prose"></div>
     </div>
   );
 }
