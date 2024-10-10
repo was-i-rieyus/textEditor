@@ -26,9 +26,9 @@ export default function RootLayout({
 }>) {
   
   return (
-    <html lang="en">
+    <html lang="en" className="w-full h-[100%]">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full bg-white dark:bg-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full bg-white dark:bg-white bg-blue-500`}
       >
         <Toaster richColors/>
         {children}

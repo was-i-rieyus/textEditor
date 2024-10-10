@@ -1,27 +1,30 @@
 import html2canvas from "html2canvas";
 import Quill from "quill";
 
-export async function captureFirstPageAsImage(quill: Quill, docName?: string) {
+export async function captureFirstPageAsImage(
+  quill: Quill
+): Promise<string | null> {
   // Custom size in pixels
-  const CUSTOM_WIDTH = 770; // Width in pixels
-  const CUSTOM_HEIGHT = 990; // Height in pixels
+  const CUSTOM_WIDTH = 816; // Width in pixels
+  const CUSTOM_HEIGHT = 1056; // Height in pixels
 
   // Clone the Quill editor's content
   const editorContent = quill.root.innerHTML;
-  const wrapper = document.getElementById("preview");
-  if (!wrapper) return;
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("prose");
+  if (!wrapper) return null;
 
-  wrapper.style.position = "absolute"; // Position off-screen
-  wrapper.style.left = "-9999px"; // Move off-screen
-  wrapper.style.width = `${CUSTOM_WIDTH}px`; // Set width
-  wrapper.style.height = `${CUSTOM_HEIGHT}px`; // Set height
-  wrapper.style.overflow = "hidden"; // Hide overflow
-
-  // Optionally, copy the Quill editor's styles to the wrapper
-  wrapper.style.fontFamily = "inherit"; // Inherit font styles (or use custom)
-  wrapper.style.lineHeight = "inherit";
-  wrapper.style.padding = "16px";
-
+  {
+    wrapper.style.position = "absolute"; // Position off-screen
+    wrapper.style.left = "-9999px"; // Move off-screen
+    wrapper.style.width = `${CUSTOM_WIDTH}px`; // Set width
+    wrapper.style.height = `${CUSTOM_HEIGHT}px`; // Set height
+    wrapper.style.overflow = "hidden"; // Hide overflow
+    wrapper.style.fontFamily = "inherit"; // Inherit font styles (or use custom)
+    wrapper.style.lineHeight = "inherit";
+    wrapper.style.padding = "16px";
+    wrapper.style.padding = "1in";
+  }
   wrapper.innerHTML = editorContent;
   document.body.appendChild(wrapper);
 
@@ -34,15 +37,15 @@ export async function captureFirstPageAsImage(quill: Quill, docName?: string) {
       height: CUSTOM_HEIGHT,
     });
     const dataUrl = canvas.toDataURL("image/png");
-
-    const link = document.createElement("a");
-    link.href = dataUrl;
-    link.download = `${docName || "document"}.png`;
-    link.click();
+    return dataUrl;
   } catch (error) {
-    console.error("Error capturing the first page as an image:", error);
+    return null;
   } finally {
     // Clean up the off-screen wrapper
-    document.body.removeChild(wrapper);
+    try {
+      document.body.removeChild(wrapper);
+    } catch (err) {
+      console.log(err);
+    }
   }
 }

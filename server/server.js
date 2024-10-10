@@ -38,23 +38,23 @@ const defaultValue = ""; // Default content for new documents
 
 // Socket.IO connection and event handling
 
-  io.on("connection", (socket) => {
-    socket.on("get-document", async (documentId) => {
-      const document = await findOrCreateDocument(documentId);
-      socket.join(documentId); // Join the room for this document
-      socket.emit("load-document", document.data); // Load the document for the user
+io.on("connection", (socket) => {
+  socket.on("get-document", async (documentId) => {
+    const document = await findOrCreateDocument(documentId);
+    socket.join(documentId); // Join the room for this document
+    socket.emit("load-document", document.data); // Load the document for the user
 
-      // Handle real-time changes
-      socket.on("send-changes", (delta) => {
-        socket.broadcast.to(documentId).emit("receive-changes", delta); // Broadcast changes to other users
-      });
+    // Handle real-time changes
+    socket.on("send-changes", (delta) => {
+      socket.broadcast.to(documentId).emit("receive-changes", delta); // Broadcast changes to other users
+    });
 
-      // Save document changes
-      socket.on("save-document", async (data) => {
-        await Document.findByIdAndUpdate(documentId, { data }); // Update the document in the database
-      });
+    // Save document changes
+    socket.on("save-document", async (data) => {
+      await Document.findByIdAndUpdate(documentId, { data }); // Update the document in the database
     });
   });
+});
 
 // API route to fetch document metadata
 app.post("/document-meta", async (req, res) => {
@@ -64,6 +64,18 @@ app.post("/document-meta", async (req, res) => {
     res.json(documents);
   } catch (error) {
     res.status(500).json({ error: "Error fetching documents" });
+  }
+});
+
+app.post("/update-doc-preview", async (req, res) => {
+  const { documentId, dataURL } = req.body;
+  try {
+    await DocumentMeta.findByIdAndUpdate(documentId, {
+      preview_image: dataURL,
+    });
+    res.status(200).json("Preview Image Updated");
+  } catch (err) {
+    res.status(500).json({ error: "Error updating preview image" });
   }
 });
 
@@ -79,7 +91,7 @@ app.get("/documents", async (req, res) => {
 
 // API route to create a new document
 app.post("/documents", async (req, res) => {
-  const { docName, docId, docDesc } = req.body;
+  const { docName, docId, docDesc, previewImg } = req.body;
 
   try {
     // Check if document ID already exists
@@ -94,6 +106,7 @@ app.post("/documents", async (req, res) => {
       _id: docId,
       document_name: docName,
       document_description: docDesc,
+      preview_image: previewImg,
     });
 
     res.status(201).json("Document created successfully");

@@ -7,12 +7,10 @@ import { redirect, useParams } from "next/navigation"; // Use useParams for rout
 import { useCallback, useEffect, useState } from "react";
 import { captureFirstPageAsImage } from "@/utilities/utilities";
 import { Navbar } from "./Navbar";
-
-
-
-
+// import Toolbar from "./ToolBar";
 
 const SAVE_INTERVAL_MS = 2000;
+const DOC_PREVIEW_UPDATE_INTERVAL_MS = 10 * 60 * 1000; //10 minutes
 const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
   [{ font: [] }],
@@ -33,7 +31,6 @@ export default function TextEditor() {
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [quill, setQuill] = useState<Quill | null>(null);
-
 
   //document Meta
   useEffect(() => {
@@ -136,7 +133,6 @@ export default function TextEditor() {
     setQuill(q);
   }, []);
 
- 
   async function exportAsPDF() {
     if (!quill) return;
     const htmlContent = quill.root.innerHTML;
@@ -167,9 +163,7 @@ export default function TextEditor() {
             });
           } else {
             // Reject promise with error message
-            reject(
-              new Error(`Failed to export pdf. Try again later`)
-            );
+            reject(new Error(`Failed to export pdf. Try again later`));
           }
         } catch (err) {
           reject("Failed to export document.Try again later!");
@@ -237,28 +231,71 @@ export default function TextEditor() {
     });
   }
 
-
   //quill,document
 
+  useEffect(() => {
+    const ele = document.getElementsByClassName("ql-editor")[0] as HTMLElement;
+    if (!ele) return;
+    ele.style.overflowY = "visible";
 
-  async function createThumbnail(){
-    if (!quill) return;
-    captureFirstPageAsImage(quill, docName);
+    ele.style.height = "fit-content";
+    ele.style.padding = "1in";
+  }, [quill]);
+
+  // UPDATE DOC PREVIEW
+  useEffect(() => {
+    const updateDocPreview = async () => {
+      const dataURL = await createThumbnail();
+      if (!dataURL) return;
+      try {
+        const res = await fetch(`${server}/update-doc-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId, dataURL }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          toast.error(result.error);
+          console.log(result.error);
+          return;
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    //Once on page render
+    setTimeout(async () => {
+      await updateDocPreview();
+    }, 2000);
+
+    const interval = setInterval(async () => {
+      await updateDocPreview();
+    }, DOC_PREVIEW_UPDATE_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [socket, quill]);
+
+  async function createThumbnail() {
+    if (!quill || !socket) return null;
+    return captureFirstPageAsImage(quill);
   }
-  
 
   return (
-    <div className="w-full">
-      <Navbar docname={docName} />
-      <div className="w-full" ref={wrapperRef}></div>
-      <button onClick={exportAsPDF}>Export as PDF</button>
-      <button onClick={exportAsDocx}>Export as DOC</button>
-      <br />
-      <button onClick={createThumbnail}>Capture First Page as Image</button>
+    <>
+      <div className="w-full h-full bg-green-500 m-0 p-0" id="TextEditorWrapper">
+        <Navbar docname={docName} />
+        {/* custom toolbar */}
+        {/* <Toolbar /> */}
+
+        <div
+          className="w-full h-[95%] m-0 p-0 overflow-hidden bg-[#F9FBFD] editor-wrapper"
+          ref={wrapperRef}
+        ></div>
 
 
-        {/* FOR DOC PREVIEW // DONT MIND */}
-        <div id="preview" className="prose"></div>
-    </div>
+      </div>
+    </>
   );
 }

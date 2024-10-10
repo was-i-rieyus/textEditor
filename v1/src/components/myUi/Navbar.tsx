@@ -50,7 +50,7 @@ export const Navbar = ({ search_field = false, docname }: Props) => {
   };
 
   return (
-    <div className="w-full bg-zinc-950 text-white h-[70px] flex justify-between items-center pr-5 relative">
+    <div className="w-full bg-zinc-950 text-white h-[5%] flex justify-between items-center pr-5 relative m-0">
       <div className="flex pl-5 justify-start items-center gap-4">
         <div className="logo w-[35px] h-[35px] text-white">
           <Link href={'/'}>

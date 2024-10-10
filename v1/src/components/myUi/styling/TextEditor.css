@@ -1,0 +1,40 @@
+html{
+    /* overflow: hidden; */
+}
+
+.ql-toolbar{
+    display: flex;
+    justify-content: center;
+    background-color: #F9FBFD;
+    border:none;
+    width: 100%;
+
+}
+
+
+.editor-wrapper{
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ql-container{
+    overflow-y: auto;
+    width: 100%;
+    
+    display: flex;
+    justify-content: center;
+    background-color: #F9FBFD;
+}
+
+
+.ql-editor{
+    width: 8.5in;
+    background-color: white;
+    border: 1px solid #e9ecef;
+    overflow: visible;
+    min-height: 100%;
+    padding: 1in;
+    
+}
+

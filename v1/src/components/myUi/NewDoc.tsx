@@ -40,6 +40,7 @@ export const NewDoc = ({ documentType }: Props) => {
         docName,
         docId,
         docDesc,
+        previewImg: null,
       };
 
       // TRY CREATING DOCUMENT
