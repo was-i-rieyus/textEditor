@@ -5,6 +5,7 @@ import { Navbar } from "@/components/myUi/Navbar";
 import { NewDoc } from "@/components/myUi/NewDoc";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 type PreviewDoc = {
   _id: string;
   document_name: string;
@@ -17,25 +18,56 @@ export default function Home() {
   // redirect(`/documents`);
   const server1 = process.env.NEXT_PUBLIC_SERVER_1;
   const server2 = process.env.NEXT_PUBLIC_SERVER_2;
-  const [RecentDocs, setRecentDocs] = useState([]);
+  const [RecentDocs, setRecentDocs] = useState<PreviewDoc[]>([]);
 
 
   // FIX WRITE DELETE LOGIC
   const deleteDocument = useCallback(async(docID:string)=>{
+    const response = await fetch(`${server2}/documents/${docID}`, {
+      method: "DELETE",
+    });
+    
+    if (response.ok) {
+      toast.success("Document deleted successfully");
+  
+      setRecentDocs(RecentDocs.filter((doc:PreviewDoc)=>doc._id!==docID));
+      
+    } else {
+      toast.error("Error deleting document");
+    }
 
-  },[])
+  },[RecentDocs])
 
   const updateDocument = useCallback(async(docID:string,docName:string,docDesc:string)=>{
-    // SHOULD NEVER CHANGE DOC-ID
+    
+    const response = await fetch(`${server2}/documents/${docID}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({document_name:docName,document_description:docDesc}),
+    });
+    
+    if (response.ok) {
+      toast.success("Document updated successfully");
+      const updatedDoc = RecentDocs.map((doc:PreviewDoc)=>{
+        if(doc._id===docID){
+          return {...doc,document_name:docName,document_description:docDesc}
+        }
+        return doc;
+      })
+      setRecentDocs(updatedDoc);
+    } else {
+      toast.error("Error updating document");
+    }
 
-  },[])
+  },[RecentDocs])
 
   useEffect(() => {
     const fetchDocs = async () => {
       try {
         const response = await fetch(`${server2}/documents`);
         const data = await response.json();
-        // console.log(data);
         setRecentDocs(data);
       } catch (error) {
         console.log(error);
@@ -43,11 +75,12 @@ export default function Home() {
     };
 
     fetchDocs();
+    
   }, []);
 
   return (
     <div className="w-full">
-      <Navbar search_field />
+      <Navbar  />
       {/* bg-[#FAF7F0] */}
       <div className="w-full bg-[#F1F3F4]">
         <p className="scroll-m-20 text-l font-normal tracking-tight pl-[15.3%] pt-5">

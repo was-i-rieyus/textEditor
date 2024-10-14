@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
 
 import {
   Dialog,
@@ -41,16 +42,21 @@ import { Label } from "@/components/ui/label";
 import { Button } from "../ui/button";
 import Image from "next/image";
 import { DotsVerticalIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 type Props = {
   docId: string;
   docName: string;
   docDesc: string;
   previewImg: string | null;
   url: string;
-  deleteDocument : (docID:string)=>Promise<void>;
-  updateDocument : (docID:string,docName:string,docDesc:string)=>Promise<void>;
+  deleteDocument: (docID: string) => Promise<void>;
+  updateDocument: (
+    docID: string,
+    docName: string,
+    docDesc: string
+  ) => Promise<void>;
 };
 export const DocPreview = ({
   docId,
@@ -59,13 +65,28 @@ export const DocPreview = ({
   previewImg,
   url,
   deleteDocument,
-  updateDocument
+  updateDocument,
 }: Props) => {
   const [ddopt, setDdopt] = useState("");
+  const [newDocName, setNewDocName] = useState("");
+  const [newDocDesc, setNewDocDesc] = useState("");
 
+  useEffect(() => {
+    setNewDocName(docName);
+    setNewDocDesc(docDesc);
+  }, [docName, docDesc]);
   // FIX PASSED DELETE DOC AND UPDATEDOC AS PROPS, HANDLE
+  const handleDocDelete = async () => {
+    await deleteDocument(docId);
+  };
 
-
+  const handleDocumentUpdate = async () => {
+    if (!newDocName) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    await updateDocument(docId, newDocName, newDocDesc);
+  };
 
   return (
     <div className="border border-grey hover:scale-[1.025] transition">
@@ -104,9 +125,9 @@ export const DocPreview = ({
           </div>
         </HoverCardContent>
       </HoverCard>
-      <div className="flex justify-ends w-full">
+      <div className="relative flex justify-ends w-full">
         <p className="text-sm m-2 grow text-center">{docName}</p>
-        <span className="flex items-center mr-1 p-1">
+        <span className="absolute right-0 top-0.5 flex items-center justify-center mr-1 p-1">
           <Dialog>
             <DropdownMenu>
               <DropdownMenuTrigger className="text-center outline-none">
@@ -133,7 +154,6 @@ export const DocPreview = ({
                 </DialogTrigger>
               </DropdownMenuContent>
             </DropdownMenu>
-            
 
             {/* FIX */}
             {/* TO HANDLE RENAME DOCUMENT */}
@@ -153,27 +173,38 @@ export const DocPreview = ({
                     </Label>
                     <Input
                       id="name"
-                      defaultValue="Pedro Duarte"
+                      // defaultValue={newDocName}
                       className="col-span-3"
+                      value={newDocName}
+                      onChange={(e) => {
+                        setNewDocName(e.target.value);
+                      }}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="username" className="text-right">
-                      Username
+                    <Label htmlFor="docDesc" className="text-right">
+                      Description
                     </Label>
-                    <Input
-                      id="username"
-                      defaultValue="@peduarte"
+                    <Textarea
+                      id="docDesc"
+                      placeholder="Enter document description"
                       className="col-span-3"
+                      value={newDocDesc}
+                      onChange={(e) => {
+                        setNewDocDesc(e.target.value);
+                      }}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" onClick={handleDocumentUpdate}>Save changes</Button>
+                  <DialogTrigger asChild>
+                    <Button type="submit" onClick={handleDocumentUpdate}>
+                      Save changes
+                    </Button>
+                  </DialogTrigger>
                 </DialogFooter>
               </DialogContent>
             )}
-
 
             {/* FIX */}
             {/* TO HANDLE DELETE DOCUMENT */}

@@ -1,6 +1,4 @@
-html{
-    /* overflow: hidden; */
-}
+
 
 .ql-toolbar{
     display: flex;
@@ -34,7 +32,6 @@ html{
     border: 1px solid #e9ecef;
     overflow: visible;
     min-height: 100%;
-    padding: 1in;
     
 }
 

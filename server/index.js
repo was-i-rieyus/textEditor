@@ -1,3 +1,6 @@
+//FOR LOCAL USAGE NOT FOR DEPLOYMENT
+
+
 // Import required packages
 const cors = require("cors");
 const express = require("express");
@@ -39,22 +42,27 @@ const defaultValue = ""; // Default content for new documents
 // Socket.IO connection and event handling
 
 io.on("connection", (socket) => {
-  socket.on("get-document", async (documentId) => {
-    const document = await findOrCreateDocument(documentId);
-    socket.join(documentId); // Join the room for this document
-    socket.emit("load-document", document.data); // Load the document for the user
-
-    // Handle real-time changes
-    socket.on("send-changes", (delta) => {
-      socket.broadcast.to(documentId).emit("receive-changes", delta); // Broadcast changes to other users
-    });
-
-    // Save document changes
-    socket.on("save-document", async (data) => {
-      await Document.findByIdAndUpdate(documentId, { data }); // Update the document in the database
+    socket.on("get-document", async (documentId) => {
+      const document = await findOrCreateDocument(documentId);
+      socket.join(documentId);
+      socket.emit("load-document", document.data);
+  
+      // Remove any previous listeners for these events
+      socket.off("send-changes");
+      socket.off("save-document");
+  
+      // Handle real-time changes
+      socket.on("send-changes", (delta) => {
+        socket.broadcast.to(documentId).emit("receive-changes", delta);
+      });
+  
+      // Save document changes
+      socket.on("save-document", async (data) => {
+        await Document.findByIdAndUpdate(documentId, { data });
+      });
     });
   });
-});
+  
 
 // API route to fetch document metadata
 app.post("/document-meta", async (req, res) => {

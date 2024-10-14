@@ -5,8 +5,14 @@ import { Delta } from "quill/core";
 import { io, Socket } from "socket.io-client";
 import { redirect, useParams } from "next/navigation"; // Use useParams for route parameters
 import { useCallback, useEffect, useState } from "react";
-import { captureFirstPageAsImage } from "@/utilities/utilities";
+
+import {
+  captureFirstPageAsImage,
+  initializeQuillShortCuts,
+} from "@/utilities/utilities";
 import { Navbar } from "./Navbar";
+import CustomToolbar from "./ToolBar";
+
 // import Toolbar from "./ToolBar";
 
 const SAVE_INTERVAL_MS = 2000;
@@ -21,6 +27,7 @@ const TOOLBAR_OPTIONS = [
   [{ align: [] }],
   ["image", "blockquote", "code-block"],
   ["clean"],
+  ["custom-button"],
 ];
 
 export default function TextEditor() {
@@ -32,7 +39,18 @@ export default function TextEditor() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [quill, setQuill] = useState<Quill | null>(null);
 
-  //document Meta
+  const [color, setColor] = useState<string>("#ffffff");
+  const handleFontColorChange = (color: string) => {
+    console.log(color);
+    setColor(color);
+    if(!quill){
+      console.log("Quill not initialized");
+      return;
+    }
+    quill.format("color", '#'+color);
+  }
+  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -126,12 +144,74 @@ export default function TextEditor() {
     wrapper.append(editor);
     const q = new Quill(editor, {
       theme: "snow",
-      modules: { toolbar: TOOLBAR_OPTIONS },
+      modules: {
+        toolbar: {
+          container: '#toolbar'
+        },
+      },
     });
+    
+    q.root.setAttribute('spellcheck', 'false'); 
+
+    initializeQuillShortCuts(q);
     q.disable();
     q.setText("Loading...");
     setQuill(q);
   }, []);
+
+  //EDIT QUILL EDITOR AND TOOLBAR??
+  {
+    useEffect(() => {
+      const ele = document.getElementsByClassName(
+        "ql-editor"
+      )[0] as HTMLElement;
+      if (!ele) return;
+      ele.style.overflowY = "visible";
+
+      ele.style.height = "fit-content";
+      ele.style.padding = "2em";
+    }, [quill]);
+  }
+
+  // UPDATE DOC PREVIEW
+  useEffect(() => {
+    const updateDocPreview = async () => {
+      const dataURL = await createThumbnail();
+      if (!dataURL) return;
+      try {
+        const res = await fetch(`${server}/update-doc-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId, dataURL }),
+        });
+        const result = await res.json();
+        if (!res.ok) {
+          toast.error(result.error);
+          console.log(result.error);
+          return;
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    //Once on page render
+    setTimeout(async () => {
+      await updateDocPreview();
+    }, 2000);
+
+    const interval = setInterval(async () => {
+      await updateDocPreview();
+    }, DOC_PREVIEW_UPDATE_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [socket, quill]);
+
+  async function createThumbnail() {
+    if (!quill || !socket) return null;
+    return captureFirstPageAsImage(quill);
+  }
 
   async function exportAsPDF() {
     if (!quill) return;
@@ -231,71 +311,26 @@ export default function TextEditor() {
     });
   }
 
-  //quill,document
-
-  useEffect(() => {
-    const ele = document.getElementsByClassName("ql-editor")[0] as HTMLElement;
-    if (!ele) return;
-    ele.style.overflowY = "visible";
-
-    ele.style.height = "fit-content";
-    ele.style.padding = "1in";
-  }, [quill]);
-
-  // UPDATE DOC PREVIEW
-  useEffect(() => {
-    const updateDocPreview = async () => {
-      const dataURL = await createThumbnail();
-      if (!dataURL) return;
-      try {
-        const res = await fetch(`${server}/update-doc-preview`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentId, dataURL }),
-        });
-        const result = await res.json();
-        if (!res.ok) {
-          toast.error(result.error);
-          console.log(result.error);
-          return;
-        }
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    //Once on page render
-    setTimeout(async () => {
-      await updateDocPreview();
-    }, 2000);
-
-    const interval = setInterval(async () => {
-      await updateDocPreview();
-    }, DOC_PREVIEW_UPDATE_INTERVAL_MS);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [socket, quill]);
-
-  async function createThumbnail() {
-    if (!quill || !socket) return null;
-    return captureFirstPageAsImage(quill);
-  }
-
   return (
     <>
-      <div className="w-full h-full bg-green-500 m-0 p-0" id="TextEditorWrapper">
+      <div
+        className="w-full h-full bg-green-500 m-0 p-0"
+        id="TextEditorWrapper"
+      >
         <Navbar docname={docName} />
-        {/* custom toolbar */}
-        {/* <Toolbar /> */}
+        <CustomToolbar  onColorChange={handleFontColorChange} exportAsDOCX={exportAsDocx} exportAsPDF={exportAsPDF}/>
 
         <div
           className="w-full h-[95%] m-0 p-0 overflow-hidden bg-[#F9FBFD] editor-wrapper"
           ref={wrapperRef}
         ></div>
-
-
       </div>
+      <div className="w-[24px] h-[24px] overflow-hidden rounded-md focus:border-none m-2 border-none scale">
+        
+      </div>
+
+
+
     </>
   );
 }

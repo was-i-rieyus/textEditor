@@ -49,3 +49,52 @@ export async function captureFirstPageAsImage(
     }
   }
 }
+
+export function initializeQuillShortCuts(quill: Quill) {
+  const toggleFormat = (formatType: string, value: any, condition: any) => {
+    const format = quill.getFormat();
+    if (format[formatType] === condition) {
+      quill.format(formatType, false);
+    } else {
+      quill.format(formatType, value);
+    }
+  };
+
+  quill.keyboard.addBinding({ key: "1", altKey: true, shortKey: true }, () => {
+    toggleFormat("header", 1, 1);
+  });
+
+  quill.keyboard.addBinding({ key: "2", altKey: true, shortKey: true }, () => {
+    toggleFormat("header", 2, 2);
+  });
+
+  quill.keyboard.addBinding({ key: "3", altKey: true, shortKey: true }, () => {
+    toggleFormat("header", 3, 3);
+  });
+
+  quill.keyboard.addBinding({ key: "4", altKey: true, shortKey: true }, () => {
+    toggleFormat("color", "#0078d4", "#0078d4");
+  });
+
+  quill.keyboard.addBinding({ key: "5", altKey: true, shortKey: true }, () => {
+    toggleFormat("color", "red", "red");
+  });
+
+  quill.keyboard.addBinding({ key: "6", altKey: true, shortKey: true }, () => {
+    toggleFormat("color", "#ffffff", "#ffffff");
+  });
+
+  quill.keyboard.addBinding({ key: "7", altKey: true, shortKey: true }, () => {
+    toggleFormat("background", "red", "red");
+    toggleFormat("color", "#ffffff", "#ffffff");
+  });
+
+  quill.keyboard.addBinding({ key: "8", altKey: true, shortKey: true }, () => {
+    toggleFormat("background", "yellow", "yellow");
+  });
+
+  quill.keyboard.addBinding({ key: "9", altKey: true, shortKey: true }, () => {
+    toggleFormat("background", "green", "green");
+    toggleFormat("color", "#ffffff", "#ffffff");
+  });
+}
